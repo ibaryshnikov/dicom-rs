@@ -340,7 +340,7 @@ where
 
     f.write_all(
         b"//! Automatically generated. Edit at your own risk.\n\n\
-    use dicom_core::dictionary::DictionaryEntryRef;\n\
+    use dicom_core::dictionary::{DictionaryEntryRef, TagRange::*};\n\
     use dicom_core::Tag;\n\
     use dicom_core::VR::*;\n\n\
     type E = DictionaryEntryRef<'static>;\n\n\
@@ -349,6 +349,9 @@ where
     )?;
 
     let regex_tag = Regex::new(r"^\(([0-9A-F]{4}),([0-9A-F]{4})\)$")?;
+    let regex_tag_single = Regex::new(r"^\(([0-9A-F]{4}),([0-9A-F]{4})\)$")?;
+    let regex_tag_group100 = Regex::new(r"^\(([0-9A-F]{2}xx),([0-9A-F]{4})\)$")?;
+    let regex_tag_elem100 = Regex::new(r"^\(([0-9A-F]{4}),([0-9A-F]{2}xx)\)$")?;
 
     for e in entries {
         let Entry {
@@ -402,7 +405,7 @@ where
 
         writeln!(
             f,
-            "    E {{ tag: Tag(0x{}, 0x{}), alias: \"{}\", vr: {}{} }},{}",
+            "    E {{ tag: Single(0x{}, 0x{}), alias: \"{}\", vr: {}{} }},{}",
             group, elem, alias, vr1, second_vr, obs
         )?;
     }

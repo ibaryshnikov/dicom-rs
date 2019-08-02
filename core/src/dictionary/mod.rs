@@ -12,7 +12,7 @@ use std::str::FromStr;
 /// Very often, the dictionary of attributes indicates a unique `(group,elem)`
 /// for a specific attribute, but occasionally a range of groups or elements
 /// is indicated instead (e.g. _Pixel Data_ is associated with ).
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, Eq, Hash, PartialEq)]
 pub enum TagRange {
     /// Only a specific tag
     Single(Tag),
@@ -28,9 +28,18 @@ impl TagRange {
     /// Retrieve the inner tag representation of this range.
     pub fn inner(self) -> Tag {
         match self {
-            TagRange::Single(tag) => tag, 
-            TagRange::Group100(tag) => tag,
-            TagRange::Element100(tag) => tag,
+            TagRange::Single(inner) => inner, 
+            TagRange::Group100(inner) => inner,
+            TagRange::Element100(inner) => inner,
+        }
+    }
+
+    /// Check whether this range contains the given tag.
+    pub fn contains(self, tag: Tag) -> bool {
+        match self {
+            TagRange::Single(inner) => inner == tag,
+            TagRange::Group100(inner) => inner.group() >> 8 == tag.group() >> 8 && inner.element() == tag.element(),
+            TagRange::Element100(inner) => inner.group() == tag.group() && inner.element() >> 8 == tag.element() >> 8,
         }
     }
 }
@@ -95,7 +104,7 @@ impl FromStr for TagRange {
  * The methods herein have no generic parameters, so as to enable being
  * used as a trait object.
  */
-pub trait DataDictionary: Debug {
+pub trait DataDictionary {
     /// The type of the dictionary entry.
     type Entry: DictionaryEntry;
 
@@ -109,8 +118,8 @@ pub trait DataDictionary: Debug {
 
 /// The dictionary entry data type, representing a DICOM attribute.
 pub trait DictionaryEntry {
-    /// The attribute tag.
-    fn tag(&self) -> Tag;
+    /// The attribute tag or tag range.
+    fn tag(&self) -> TagRange;
     /// The alias of the attribute, with no spaces, usually in UpperCamelCase.
     fn alias(&self) -> &str;
     /// The _typical_ value representation of the attribute.
@@ -119,18 +128,18 @@ pub trait DictionaryEntry {
 }
 
 /// A data type for a dictionary entry with full ownership.
-#[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub struct DictionaryEntryBuf {
-    /// The attribute tag
-    pub tag: Tag,
-    /// The alias of the attribute, with no spaces, usually InCapitalizedCamelCase
+    /// The attribute tag or tag range
+    pub tag: TagRange,
+    /// The alias of the attribute, with no spaces, usually in UpperCamelCase
     pub alias: String,
-    /// The _typical_  value representation of the attribute
+    /// The _typical_  value representation of the attribute, although more may be applicable
     pub vr: VR,
 }
 
 impl DictionaryEntry for DictionaryEntryBuf {
-    fn tag(&self) -> Tag {
+    fn tag(&self) -> TagRange {
         self.tag
     }
     fn alias(&self) -> &str {
@@ -142,10 +151,10 @@ impl DictionaryEntry for DictionaryEntryBuf {
 }
 
 /// A data type for a dictionary entry with a string slice for its alias.
-#[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(Debug, PartialEq, Eq, Hash, Copy, Clone)]
 pub struct DictionaryEntryRef<'a> {
     /// The attribute tag
-    pub tag: Tag,
+    pub tag: TagRange,
     /// The alias of the attribute, with no spaces, usually InCapitalizedCamelCase
     pub alias: &'a str,
     /// The _typical_  value representation of the attribute
@@ -153,7 +162,7 @@ pub struct DictionaryEntryRef<'a> {
 }
 
 impl<'a> DictionaryEntry for DictionaryEntryRef<'a> {
-    fn tag(&self) -> Tag {
+    fn tag(&self) -> TagRange {
         self.tag
     }
     fn alias(&self) -> &str {
@@ -184,7 +193,7 @@ impl<N: AsRef<str>, D: DataDictionary> TagByName<N, D> {
 
 impl<N: AsRef<str>, D: DataDictionary> From<TagByName<N, D>> for Option<Tag> {
     fn from(tag: TagByName<N, D>) -> Option<Tag> {
-        tag.dict.by_name(tag.name.as_ref()).map(|e| e.tag())
+        tag.dict.by_name(tag.name.as_ref()).map(|e| e.tag().inner())
     }
 }
 

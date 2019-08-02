@@ -11,7 +11,7 @@ mod entries;
 use std::collections::HashMap;
 use std::fmt;
 use std::fmt::{Display, Formatter};
-use dicom_core::dictionary::{DataDictionary, DictionaryEntryRef};
+use dicom_core::dictionary::{DataDictionary, DictionaryEntryRef, TagRange};
 use dicom_core::header::{Tag, VR};
 use lazy_static::lazy_static;
 use crate::entries::ENTRIES;
@@ -44,7 +44,7 @@ impl StandardDictionaryRegistry {
 
     fn index(&mut self, entry: &'static DictionaryEntryRef<'static>) -> &mut Self {
         self.by_name.insert(entry.alias, entry);
-        self.by_tag.insert(entry.tag, entry);
+        self.by_tag.insert(entry.tag.inner(), entry);
         self
     }
 }
@@ -98,62 +98,62 @@ fn init_dictionary() -> StandardDictionaryRegistry {
 type E<'a> = DictionaryEntryRef<'a>;
 const META_ENTRIES: &'static [E<'static>] = &[
     E {
-        tag: Tag(0x0002, 0x0000),
+        tag: TagRange::Single(Tag(0x0002, 0x0000)),
         alias: "FileMetaInformationGroupLength",
         vr: VR::UL,
     },
     E {
-        tag: Tag(0x0002, 0x0001),
+        tag: TagRange::Single(Tag(0x0002, 0x0001)),
         alias: "FileMetaInformationVersion",
         vr: VR::OB,
     },
     E {
-        tag: Tag(0x0002, 0x0002),
+        tag: TagRange::Single(Tag(0x0002, 0x0002)),
         alias: "MediaStorageSOPClassUID",
         vr: VR::UI,
     },
     E {
-        tag: Tag(0x0002, 0x0003),
+        tag: TagRange::Single(Tag(0x0002, 0x0003)),
         alias: "MediaStorageSOPInstanceUID",
         vr: VR::UI,
     },
     E {
-        tag: Tag(0x0002, 0x0010),
+        tag: TagRange::Single(Tag(0x0002, 0x0010)),
         alias: "TransferSyntaxUID",
         vr: VR::UI,
     },
     E {
-        tag: Tag(0x0002, 0x0012),
+        tag: TagRange::Single(Tag(0x0002, 0x0012)),
         alias: "ImplementationClassUID",
         vr: VR::UI,
     },
     E {
-        tag: Tag(0x0002, 0x0013),
+        tag: TagRange::Single(Tag(0x0002, 0x0013)),
         alias: "ImplentationVersionName",
         vr: VR::SH,
     },
     E {
-        tag: Tag(0x0002, 0x0016),
+        tag: TagRange::Single(Tag(0x0002, 0x0016)),
         alias: "SourceApplicationEntityTitle",
         vr: VR::AE,
     },
     E {
-        tag: Tag(0x0002, 0x0017),
+        tag: TagRange::Single(Tag(0x0002, 0x0017)),
         alias: "SendingApplicationEntityTitle",
         vr: VR::AE,
     },
     E {
-        tag: Tag(0x0002, 0x0018),
+        tag: TagRange::Single(Tag(0x0002, 0x0018)),
         alias: "ReceivingApplicationEntityTitle",
         vr: VR::AE,
     },
     E {
-        tag: Tag(0x0002, 0x0100),
+        tag: TagRange::Single(Tag(0x0002, 0x0100)),
         alias: "PrivateInformationCreatorUID",
         vr: VR::UI,
     },
     E {
-        tag: Tag(0x0002, 0x0102),
+        tag: TagRange::Single(Tag(0x0002, 0x0102)),
         alias: "PrivateInformation",
         vr: VR::OB,
     },
@@ -162,7 +162,7 @@ const META_ENTRIES: &'static [E<'static>] = &[
 #[cfg(test)]
 mod tests {
     use super::StandardDataDictionary;
-    use dicom_core::dictionary::{DataDictionary, DictionaryEntryRef};
+    use dicom_core::dictionary::{DataDictionary, DictionaryEntryRef, TagRange};
     use dicom_core::header::{Tag, VR};
 
     // tests for just a few attributes to make sure that the entries
@@ -174,7 +174,7 @@ mod tests {
         assert_eq!(
             dict.by_name("PatientName"),
             Some(&DictionaryEntryRef {
-                tag: Tag(0x0010, 0x0010),
+                tag: TagRange::Single(Tag(0x0010, 0x0010)),
                 alias: "PatientName",
                 vr: VR::PN,
             })
@@ -183,7 +183,7 @@ mod tests {
         assert_eq!(
             dict.by_name("Modality"),
             Some(&DictionaryEntryRef {
-                tag: Tag(0x0008, 0x0060),
+                tag: TagRange::Single(Tag(0x0008, 0x0060)),
                 alias: "Modality",
                 vr: VR::CS,
             })
@@ -191,7 +191,7 @@ mod tests {
 
         let pixel_data = dict.by_tag(Tag(0x7FE0, 0x0010))
             .expect("Pixel Data attribute should exist");
-        assert_eq!(pixel_data.tag, Tag(0x7FE0, 0x0010));
+        assert_eq!(pixel_data.tag, TagRange::Single(Tag(0x7FE0, 0x0010)));
         assert_eq!(pixel_data.alias, "PixelData");
         assert!(pixel_data.vr == VR::OB || pixel_data.vr == VR::OW);
     }

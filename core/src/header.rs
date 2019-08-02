@@ -349,7 +349,7 @@ impl Header for SequenceItemHeader {
 }
 
 /// An enum type for a DICOM value representation.
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
 pub enum VR {
     /// Application Entity
     AE,
