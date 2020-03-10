@@ -110,15 +110,21 @@ impl FileMetaTable {
             };
             builder = match elem.tag() {
                 Tag(0x0002, 0x0001) => {
-                    // Implementation Version
-                    if elem.len() != Length(2) {
-                        return Err(Error::UnexpectedDataValueLength);
-                    }
-                    let mut hbuf = [0u8; 2];
-                    file.read_exact(&mut hbuf[..])?;
-                    group_length_remaining -= 14;
+                    if elem.len() == Length(0) {
+                        let hbuf = [0, 1];
+                        group_length_remaining -= 12;
+                        builder.information_version(hbuf)
+                    } else {
+                        // Implementation Version
+                        if elem.len() != Length(2) {
+                            return Err(Error::UnexpectedDataValueLength);
+                        }
+                        let mut hbuf = [0u8; 2];
+                        file.read_exact(&mut hbuf[..])?;
+                        group_length_remaining -= 14;
 
-                    builder.information_version(hbuf)
+                        builder.information_version(hbuf)
+                    }
                 }
                 // Media Storage SOP Class UID
                 Tag(0x0002, 0x0002) => builder.media_storage_sop_class_uid(read_str_body(

@@ -25,8 +25,12 @@ pub fn parse_date(buf: &[u8]) -> Result<(NaiveDate, &[u8])> {
         len => {
             debug_assert!(len >= 8);
             let year = read_number(&buf[0..4])?;
-            let month = (i32::from(buf[4]) - Z) * 10 + i32::from(buf[5]) - Z;
-            let day = (i32::from(buf[6]) - Z) * 10 + i32::from(buf[7]) - Z;
+            let mut month = (i32::from(buf[4]) - Z) * 10 + i32::from(buf[5]) - Z;
+            let mut day = (i32::from(buf[6]) - Z) * 10 + i32::from(buf[7]) - Z;
+            if let (0, 0) = (day, month) {
+                day = 1;
+                month = 1;
+            }
             let date: Result<_> = NaiveDate::from_ymd_opt(year, month as u32, day as u32)
                 .ok_or_else(|| InvalidValueReadError::DateTimeZone.into());
             Ok((date?, &buf[8..]))
